@@ -5,6 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# TODO: integrate into IO
 class dataio:
     """
     Base class for data IO.

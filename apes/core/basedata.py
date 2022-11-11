@@ -40,10 +40,11 @@ def file_size_format(size):
 
 
 class DictAttr():
-    """Base class for attribtue class that are in OrderedDict"""
 
     def __init__(self, attr):
         """
+        Base class for attribtue that are in OrderedDict
+
         Parameters
         ----------
         attr: OrderedDict
@@ -56,8 +57,6 @@ class DictAttr():
     def as_dict(self):
         """
         Return the config fields and values in an ``OrderedDict``.
-
-        Values are cached in `self._dict` unless refreshed.
         """
         out = []
         for key, val in self.__dict__.items():
@@ -104,14 +103,12 @@ class BaseData():
 
         # TODO: if large, split
 
-        tag = self._set_tag(input_tag=tag, all_tags=all_tags)
-        self.tag = DictAttr(tag)
-
+        # --- data tags ---
+        self._set_tag_dict(input_tag=tag, all_tags=all_tags)
         # --- data attributes ---
-        attr = self._set_attr_dict(file_name=file_name,
-                                   name=name, info=info,
-                                   url=url, doi=doi, lic=lic)
-        self.attr = DictAttr(attr)
+        self._set_attr_dict(file_name=file_name,
+                            name=name, info=info,
+                            url=url, doi=doi, lic=lic)
         self._fpath = get_data(file_name)
 
     def __repr__(self):
@@ -130,7 +127,8 @@ class BaseData():
             info2 = f'Stored as: {self._fpath}'
         return info + info2
 
-    def _set_tag(self, input_tag, all_tags) -> OrderedDict:
+    def _set_tag_dict(self, input_tag, all_tags) -> OrderedDict:
+        """Set the tags into dictionary"""
         tags = all_tags.copy().fromkeys(all_tags.keys(), [])
         for cat in tags.keys():
             values = []
@@ -152,6 +150,7 @@ class BaseData():
             tags['ungrouped'] = ungrouped_list
             msg = f'Ungrouped tags: {ungrouped_list}'
             logger.info(msg + ', consider updating the tag list')
+        self.tag = DictAttr(tags)
         return tags
 
     def _set_attr_dict(self,
@@ -205,6 +204,7 @@ class BaseData():
             ('doi', doi),
             ('lic', lic),
         ])
+        self.attr = DictAttr(attr)
         return attr
 
 
@@ -270,13 +270,14 @@ class CSVSourceData(SourceData):
             all_files = glob.glob(self.dir + '/*.csv')
             li = []
             for filename in all_files:
-                frame = pd.read_csv(filename, index_col=None, header=0,  **kwargs)
+                frame = pd.read_csv(
+                    filename, index_col=None, header=0,  **kwargs)
                 li.append(frame)
             df = pd.concat(li, axis=0, ignore_index=True)
         else:
             df = pd.read_csv(self.dir, **kwargs)
         return df
-    
+
     def head(self,  **kwargs) -> pd.DataFrame:
         """Preview the CSV data as pandas dataframe"""
         return self.as_df(**kwargs).head()
