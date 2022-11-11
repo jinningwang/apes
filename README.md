@@ -1,3 +1,3 @@
-# apes
+# APES
 
-Data management and catelog.
+Data Management and **A**nalysis of **P**ower, **E**nergy, and **S**ociety.
