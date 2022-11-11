@@ -77,7 +77,7 @@ class BaseData():
                  name=None,
                  info=None, tag=[],
                  url=None, doi=None,
-                 lic=None):
+                 lic=None, publisher=None,):
         """
         Parameters
         ----------
@@ -108,10 +108,12 @@ class BaseData():
         # --- data attributes ---
         self._set_attr_dict(file_name=file_name,
                             name=name, info=info,
-                            url=url, doi=doi, lic=lic)
+                            url=url, doi=doi, lic=lic,
+                            publisher=publisher)
         self._fpath = get_data(file_name)
 
     def __repr__(self):
+        # TODO: include publisher, license, url, doi
         info = f'Class: {self.__class__.__name__}' + '\n' + \
             f'Data name: {self.name}' + '\n' + \
             f'Data type: {self.attr.type}' + '\n' + \
@@ -153,10 +155,10 @@ class BaseData():
         self.tag = DictAttr(tags)
         return tags
 
-    def _set_attr_dict(self,
-                       file_name,
+    def _set_attr_dict(self, file_name,
                        name, info,
-                       url, doi, lic) -> OrderedDict:
+                       url, doi, lic,
+                       publisher) -> OrderedDict:
         """
         Set the attributes of the data
         """
@@ -203,6 +205,7 @@ class BaseData():
             ('url', url),
             ('doi', doi),
             ('lic', lic),
+            ('publisher', publisher),
         ])
         self.attr = DictAttr(attr)
         return attr
@@ -217,7 +220,7 @@ class SourceData(BaseData):
                  name=None,
                  info=None, tag=None,
                  url=None, doi=None,
-                 lic=None):
+                 lic=None, publisher=None,):
         """
         Parameters
         ----------
@@ -239,7 +242,8 @@ class SourceData(BaseData):
         super().__init__(file_name=file_name,
                          name=name,
                          info=info, tag=tag,
-                         url=url, doi=doi, lic=lic)
+                         url=url, doi=doi, lic=lic,
+                         publisher=publisher,)
         self.dir = data_root() + '/' + file_name
 
     def save(self, filename):
@@ -258,11 +262,12 @@ class CSVSourceData(SourceData):
                  name=None,
                  info=None, tag=None,
                  url=None, doi=None,
-                 lic=None):
+                 lic=None, publisher=None,):
         super().__init__(file_name=file_name,
                          name=name,
                          info=info, tag=tag,
-                         url=url, doi=doi, lic=lic)
+                         url=url, doi=doi, lic=lic,
+                         publisher=publisher,)
 
     def as_df(self, **kwargs) -> pd.DataFrame:
         """Load data into pandas dataframe using pd.read_csv()"""
