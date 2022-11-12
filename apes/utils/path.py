@@ -2,7 +2,7 @@ import os
 
 def data_root() -> str:
     """
-    Return the root path to the stock cases
+    Return the root path to the datasets
     """
 
     dir_name = os.path.dirname(os.path.abspath(__file__))
@@ -11,11 +11,11 @@ def data_root() -> str:
 
 def get_data(data_name) -> str:
     """
-    Return the path to the stock cases
+    Return the path to the stock datasets
 
     Parameters
     ----------
     data_name : str
-        Name of the data, such as 'sourcedata/sample.csv'
+        Name of the data, such as "sourcedata/sample.csv"
     """
     return data_root() + '/' + data_name

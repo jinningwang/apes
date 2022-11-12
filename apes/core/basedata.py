@@ -1,3 +1,5 @@
+"""APES data class"""
+
 import sys
 import os
 import glob
@@ -26,17 +28,63 @@ all_tags = OrderedDict([
 flatten_all_tag = [val for values in all_tags.values() for val in values]
 
 
-def file_size_format(size):
-    """ Convert file size in Bytes to human readable format """
-    type_list = ['Bytes', 'KB', 'MB', 'GB']
-    for i, type in enumerate(type_list):
-        size_c = round(size / (1024 ** i), 2)
-        if (size_c >= 1) & (size_c < 1024):
-            return str(size_c) + ' ' + type
-        elif size_c >= 1024:
-            continue
-        elif type == 'GB':
-            return str(size_c) + ' ' + type
+unit_dict = OrderedDict([
+    ('Bytes', 1),
+    ('KB', 1024),
+    ('MB', 1024 ** 2),
+    ('GB', 1024 ** 3),
+])
+
+
+def file_size_normalize(size):
+    """
+    Normalize file size with units in MB
+
+    Parameters
+    ----------
+    size: str
+        File size with units split by one space, e.g. "28.96 MB"
+    """
+    size_val, size_unit = size.split(' ')
+    size_val = float(size_val)
+    size_out = size_val * unit_dict[size_unit] / unit_dict['MB']
+    return size_out
+
+
+def file_size_format(size, force_unit=None) -> str:
+    """
+    Convert file size in Bytes to human readable format
+
+    Parameters
+    ----------
+    size : float
+        File size in Bytes
+    force_unit : str, optional
+        Force unit to be used, ['Bytes', 'KB', 'MB', 'GB'],
+
+    Returns
+    -------
+    str
+        File size with unit split by space,
+        e.g. '1.2 MB'
+    """
+    out = '-1 Bytes'
+    find_flag = False
+    if force_unit:
+        size_c = size / unit_dict[force_unit]
+        out = f'{size_c:.2f} {force_unit}'
+    else:
+        for unit in unit_dict.keys():
+            size_c = size / unit_dict[unit]
+            out = f'{size_c:.2f} {unit}'
+            if (size_c < 1024):
+                find_flag = True
+                break
+            elif (size_c >= 1024):
+                continue
+        if not find_flag:
+            logger.warning(f'File size is too large: {out}')
+    return out
 
 
 class DictAttr():
@@ -101,16 +149,28 @@ class BaseData():
             is_split = True
         self.is_split = is_split
 
-        # TODO: if large, split
-
         # --- data tags ---
-        self._set_tag_dict(input_tag=tag, all_tags=all_tags)
+        tags = self._set_tag_dict(input_tag=tag, all_tags=all_tags)
+        self.tag = DictAttr(tags)
         # --- data attributes ---
-        self._set_attr_dict(file_name=file_name,
-                            name=name, info=info,
-                            url=url, doi=doi, lic=lic,
-                            publisher=publisher)
+        attr = self._set_attr_dict(file_name=file_name,
+                                   name=name, info=info,
+                                   url=url, doi=doi, lic=lic,
+                                   publisher=publisher)
+        self.attr = DictAttr(attr)
         self._fpath = get_data(file_name)
+
+        # --- file size check ---
+        size_mb = file_size_normalize(self.attr.size)
+        thl_warn_mb = 50
+        thl_error_mb = 100
+        if size_mb > thl_warn_mb:
+            info = f'File size is larger than {thl_warn_mb} MB'
+            logger.info(info)
+        elif size_mb > thl_error_mb:
+            info = f'File size is larger than {thl_error_mb} MB'
+            logger.warning(
+                f'File size {size_mb} larger than: {thl_error_mb} MB')
 
     def __repr__(self):
         # TODO: include publisher, license, url, doi
@@ -152,7 +212,6 @@ class BaseData():
             tags['ungrouped'] = ungrouped_list
             msg = f'Ungrouped tags: {ungrouped_list}'
             logger.info(msg + ', consider updating the tag list')
-        self.tag = DictAttr(tags)
         return tags
 
     def _set_attr_dict(self, file_name,
@@ -183,9 +242,10 @@ class BaseData():
                 for f in files:
                     fp = os.path.join(subpath, f)
                     size_count += os.path.getsize(fp)
-            size_formatted = file_size_format(size_count)
+            size_formatted = file_size_format(size_count, force_unit=None)
         else:
-            size_formatted = file_size_format(os.path.getsize(fpath))
+            size_formatted = file_size_format(
+                os.path.getsize(fpath), force_unit=None)
 
         # --- time ---
         dct = os.path.getctime(fpath)
@@ -207,8 +267,14 @@ class BaseData():
             ('lic', lic),
             ('publisher', publisher),
         ])
-        self.attr = DictAttr(attr)
         return attr
+
+    def save(self, filename):
+        """Save data to file"""
+        # if the file size is larger than XX MB
+        # seperate it into multiple files
+        # TODO: find popular file size limit
+        pass
 
 
 class SourceData(BaseData):
@@ -245,13 +311,6 @@ class SourceData(BaseData):
                          url=url, doi=doi, lic=lic,
                          publisher=publisher,)
         self.dir = data_root() + '/' + file_name
-
-    def save(self, filename):
-        """Save data to file"""
-        # if the file size is larger than XX MB
-        # seperate it into multiple files
-        # TODO: find popular file size limit
-        pass
 
 
 class CSVSourceData(SourceData):
